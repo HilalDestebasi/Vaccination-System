@@ -1,0 +1,96 @@
+--QUERIES------------------
+--1- Find the person(s) who was/were vaccinated after 16.06.2021 in the cities whose name starts with "G" or "V".
+SELECT person.person_name,person.city,vaccine.vac_date
+from  vaccine, person
+WHERE vaccine.v_person_id=person.person_id 
+	and vaccine.vac_date>'2021-06-16' 
+    	and (person.city like 'G%' or person.city like 'V%'); 
+
+--2- Find the healthcare professionals who were responsible for vaccinating the "Biontech" vaccine to the people who are elder than 50
+SELECT DISTINCT paramedic.paramedic_name
+from paramedic,vaccine_type,person,vaccine
+WHERE 	(person.age>='50' and vaccine.v_person_id=person.person_id) and 
+        (vaccine_type.vac_name='Biontech' AND vaccine_type.vac_type_id=vaccine.type_id) AND
+        (paramedic.paramedic_id=vaccine.v_paramedic_id);
+
+--3- Add a new column named "Country_Code" to the table keeping the vaccine information based on country name (i.e. if the counrty name is Turkey, then the county code is "TR") 
+ALTER TABLE vaccine_type
+add country_code CHARACTER VARYING(10);
+update vaccine_type
+set country_code='DE' ;
+update vaccine_type
+set country_code='CN' 
+where vac_country='China';
+update vaccine_type
+set country_code='CA' 
+where vac_country='Canada';
+update vaccine_type
+set country_code='AR' 
+where vac_country='Argentina';
+update vaccine_type
+set country_code='AQ' 
+where vac_country='Antartica';
+update vaccine_type
+set country_code='AL' 
+where vac_country='Albania';
+update vaccine_type
+set country_code='BR' 
+where vac_country='Brazil';
+update vaccine_type
+set country_code='AF' 
+where vac_country='Afghanistan';
+update vaccine_type
+set country_code='CA' 
+where vac_country='Canada';
+update vaccine_type
+set country_code='FR' 
+where vac_country='France';
+INSERT into vaccine_type(vac_name,vac_country,country_code)
+VALUES ('turkovac','Turkey','TR');
+SELECT * from vaccine_type;
+
+--4- Find the number of people who were vaccinated according to each vaccine type.
+SELECT vaccine.type_id, COUNT(vaccine.type_id)
+FROM vaccine
+GROUP BY vaccine.type_id
+HAVING COUNT(vaccine.type_id)>=1
+
+--5- Find the youngest person who was vaccinated with "Sinovac" in "Dokuz Eylül University Hospital"
+SELECT * from person where person.age= (SELECT MIN(person.age)
+from person,medical_center,paramedic,vaccine
+where medical_center.mc_id=paramedic.paramedic_id 
+and medical_center.mc_name='Dokuz Eylül University Hospital' 
+and paramedic.paramedic_id=vaccine.v_paramedic_id
+and vaccine.type_id='1');
+
+--6- Find the selected vaccine type, vaccination date and the assigned medical center for the person whose name "Ali Aslan".
+select vaccine_type.vac_name,vaccine.vac_date, medical_center.mc_name
+from vaccine_type, vaccine, medical_center, paramedic,person
+WHERE person.person_name='Ali' 
+AND person.person_surname='Aslan' 
+and vaccine.v_person_id=person.person_id
+and vaccine.type_id=vaccine_type.vac_type_id
+and vaccine.v_paramedic_id=paramedic.paramedic_id
+and paramedic.p_mc_id=mc_id;
+
+--7- Find the most risky city according to state of health. 
+SELECT person.city,COUNT(hes.health) FROM person,hes
+WHERE hes.health='risky' and person.hes=hes.h_hes
+GROUP BY person.city
+ORDER BY COUNT(hes.health) DESC LIMIT 1;
+
+--8- Update the state of health of the person whose phone number is "05534849876" as "Risky"
+UPDATE hes
+SET health = 'risky'
+WHERE phone_number = '05534849876';
+
+--9- Delete the people over 65 who have not yet been vaccinated
+DELETE 
+FROM person 
+USING hes 
+WHERE person.hes = hes.h_hes
+and hes.vaccination= 'unvaccinated' and person.age > 65;
+
+--10-  Add a new vaccine type named "Sputnik V" produced in Russia
+INSERT into vaccine_type(vac_name,vac_country)
+VALUES ('Sputnik V','Russia');
